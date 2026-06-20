@@ -1,0 +1,76 @@
+// Asset Map (Read-Only)
+// Edit assets in the Media tab.
+// Use these IDs alongside lib to reference assets in your code:
+//
+// Example: lib.getAsset["player_sprite"]
+
+const assets = {
+  "player_character": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/images/player_character_d512d04f-8586-4e91-b7ff-282c3f1416d5.webp",
+    "type": "image",
+    "aspect_ratio": [
+      994,
+      911
+    ]
+  },
+  "coin_collectible": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/images/coin_collectible_5c853641-22c8-4b56-b57c-1e35178791dd.webp",
+    "type": "image",
+    "aspect_ratio": [
+      910,
+      913
+    ]
+  },
+  "goal_flag": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/images/goal_flag_e7e16cc9-b94e-4a7b-b15a-6eaeb34e163c.webp",
+    "type": "image",
+    "aspect_ratio": [
+      685,
+      1232
+    ]
+  },
+  "jump_upgrade_icon": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/images/jump_upgrade_icon_b697987b-ee91-465e-b6bf-9c701c888023.webp",
+    "type": "image",
+    "aspect_ratio": [
+      581,
+      784
+    ]
+  },
+  "speed_upgrade_icon": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/images/speed_upgrade_icon_4fa0893e-9216-437f-ad80-71edb0f22b4c.webp",
+    "type": "image",
+    "aspect_ratio": [
+      756,
+      579
+    ]
+  },
+  "background_sky": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/images/background_sky_4d82e7c6-ce3e-4d8f-9a26-7b13af94e8e4.webp",
+    "type": "image",
+    "aspect_ratio": [
+      1024,
+      1536
+    ]
+  },
+  "coin_collect_sound": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/sounds/effect/coin_collect_sound_f0823ce9-2588-4a67-a529-be51e5687daa.mp3",
+    "type": "audio"
+  },
+  "jump_sound": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/sounds/effect/jump_sound_eb3515b1-4ea9-40ec-a319-fdbb60c45151.mp3",
+    "type": "audio"
+  },
+  "death_sound": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/sounds/effect/death_sound_f392f716-9d92-4a53-981e-270fdcf7c2a1.mp3",
+    "type": "audio"
+  },
+  "level_complete_sound": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/sounds/effect/level_complete_sound_d06089c3-de86-4d3f-8563-2eac33bff23f.mp3",
+    "type": "audio"
+  },
+  "upgrade_purchase_sound": {
+    "url": "https://d2oir5eh8rty2e.cloudfront.net/assets/sounds/effect/upgrade_purchase_sound_09687d63-030e-4e49-b0bb-22d109f9d15a.mp3",
+    "type": "audio"
+  }
+};
