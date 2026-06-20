@@ -211,6 +211,25 @@
             background: linear-gradient(135deg, #FFD700, #DAA520);
             color: #1a1a2e;
         }
+
+        .hud-btn {
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            pointer-events: auto;
+            transition: transform 0.1s, background 0.1s;
+            user-select: none;
+        }
+        .hud-btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 0, 0, 0.8);
+        }
     </style>
 </head>
 <body>
@@ -295,6 +314,45 @@
 
         await preloadAssets();
 
+        // HUD Controls for Play Mode
+        let hudControls = null;
+        if (mode === 'play') {
+            hudControls = document.createElement('div');
+            hudControls.id = 'hud-controls';
+            hudControls.style.position = 'absolute';
+            hudControls.style.top = '16px';
+            hudControls.style.left = '16px';
+            hudControls.style.display = 'flex';
+            hudControls.style.gap = '8px';
+            hudControls.style.zIndex = '20';
+            hudControls.style.pointerEvents = 'none';
+            gameWorld.appendChild(hudControls);
+
+            const backBtn = document.createElement('button');
+            backBtn.className = 'hud-btn';
+            backBtn.innerHTML = '← Back';
+            backBtn.style.pointerEvents = 'auto';
+            backBtn.onclick = () => {
+                if ((gameState === 'playing' || gameState === 'dead') && currentLevel > 0) {
+                    currentLevel--;
+                    loadLevel(currentLevel, true);
+                    saveProgress();
+                }
+            };
+            hudControls.appendChild(backBtn);
+
+            const restartBtn = document.createElement('button');
+            restartBtn.className = 'hud-btn';
+            restartBtn.innerHTML = '↺ Restart';
+            restartBtn.style.pointerEvents = 'auto';
+            restartBtn.onclick = () => {
+                if (gameState === 'playing' || gameState === 'dead') {
+                    loadLevel(currentLevel, true);
+                }
+            };
+            hudControls.appendChild(restartBtn);
+        }
+
         // Config
         const cfg = window.gameConfig;
 
@@ -359,7 +417,18 @@
                     coins: [
                         { x: 160, y: 980 }, { x: 380, y: 880 }, { x: 580, y: 780 },
                         { x: 420, y: 700 }, { x: 100, y: 1140 }, { x: 600, y: 1140 },
-                        { x: 350, y: 1140 }
+                        { x: 350, y: 1140 },
+                        // 15 extra coins for Level 2
+                        { x: 50, y: 1140 }, { x: 150, y: 1140 }, { x: 250, y: 1140 },
+                        { x: 450, y: 1140 }, { x: 550, y: 1140 }, { x: 650, y: 1140 },
+                        { x: 120, y: 980 }, { x: 180, y: 980 }, { x: 300, y: 880 },
+                        { x: 340, y: 880 }, { x: 540, y: 780 }, { x: 500, y: 780 },
+                        { x: 320, y: 700 }, { x: 380, y: 700 }, { x: 440, y: 700 },
+                        // 10 more coins for Level 2
+                        { x: 200, y: 1140 }, { x: 400, y: 1140 }, { x: 150, y: 1000 },
+                        { x: 350, y: 900 }, { x: 550, y: 800 }, { x: 380, y: 720 },
+                        { x: 410, y: 720 }, { x: 500, y: 1100 }, { x: 600, y: 1000 },
+                        { x: 50, y: 1000 }
                     ],
                     flagX: 380, flagY: 660,
                     coinReward: 10
@@ -624,6 +693,7 @@
         let speedLevel = 0;
         let completedLevels = new Set();
         let collectedCoins = {}; // per level coin tracking
+        let levelEntryState = {}; // coin/upgrade state at start of each level session
 
         // Player state
         let player = { x: 0, y: 0, vx: 0, vy: 0, w: 40, h: 40, grounded: false, coyoteTime: 0, jumpBuffer: 0 };
@@ -656,7 +726,23 @@
             return Math.round(costs[level] * (cfg.settings.upgradeCostMultiplier || 1));
         }
 
-        function loadLevel(idx) {
+        function loadLevel(idx, isReload = false, isDeath = false) {
+            if (isReload && levelEntryState[idx]) {
+                if (!isDeath) {
+                    coins = levelEntryState[idx].coins;
+                    jumpLevel = levelEntryState[idx].jumpLevel;
+                    speedLevel = levelEntryState[idx].speedLevel;
+                }
+            } else {
+                // Record state when first entering level (from start or shop)
+                levelEntryState[idx] = { coins, jumpLevel, speedLevel };
+            }
+
+            // Reset level's collected coins ONLY if it's NOT a death reload
+            if (!isDeath || !collectedCoins[idx]) {
+                collectedCoins[idx] = new Set();
+            }
+
             const lvl = levels[idx];
             player.x = lvl.spawnX;
             player.y = lvl.spawnY;
@@ -668,7 +754,6 @@
             cameraX = 0;
             gameState = 'playing';
             levelCoinsCollected = 0;
-            if (!collectedCoins[idx]) collectedCoins[idx] = new Set();
         }
 
         // Load saved state
@@ -682,6 +767,7 @@
                     speedLevel = s.speedLevel ?? 0;
                     currentLevel = s.currentLevel ?? (cfg.settings.startingLevel - 1) ?? 0;
                     completedLevels = new Set(s.completedLevels ?? []);
+                    levelEntryState = s.levelEntryState ?? {};
                     collectedCoins = {};
                     if (s.collectedCoins) {
                         for (const k in s.collectedCoins) {
@@ -701,7 +787,8 @@
                 await lib.saveUserGameState({
                     coins, jumpLevel, speedLevel, currentLevel,
                     completedLevels: [...completedLevels],
-                    collectedCoins: cc
+                    collectedCoins: cc,
+                    levelEntryState
                 });
             } catch(e) {}
         }
@@ -1023,7 +1110,7 @@
             btnNext.addEventListener('click', () => {
                 currentLevel++;
                 uiOverlay.innerHTML = '';
-                loadLevel(currentLevel);
+                loadLevel(currentLevel, false);
                 saveProgress();
             });
         }
@@ -1049,7 +1136,12 @@
             document.getElementById('btn-replay').addEventListener('click', () => {
                 currentLevel = 0;
                 uiOverlay.innerHTML = '';
-                loadLevel(0);
+                // Full reset for replay
+                coins = cfg.settings.startingCoins || 0;
+                jumpLevel = 0;
+                speedLevel = 0;
+                levelEntryState = {};
+                loadLevel(0, false);
             });
         }
 
@@ -1194,15 +1286,16 @@
         }
 
         function renderHUD() {
-            // Coin count
+            // Coin count - moved to top right
             ctx.fillStyle = 'rgba(0,0,0,0.7)';
             ctx.beginPath();
-            ctx.roundRect(16, 16, 140, 48, 12);
+            ctx.roundRect(720 - 156, 16, 140, 48, 12);
             ctx.fill();
             ctx.fillStyle = '#FFD700';
             ctx.font = '600 24px Fredoka';
             ctx.textBaseline = 'middle';
-            ctx.fillText(`🪙 ${coins}`, 32, 40);
+            ctx.textAlign = 'left';
+            ctx.fillText(`🪙 ${coins}`, 720 - 140, 40);
 
             // Level
             ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -1292,10 +1385,15 @@
             lastTime = timestamp;
 
             if (mode === 'play') {
+                if (hudControls) {
+                    hudControls.style.display = (gameState === 'playing' || gameState === 'dead') ? 'flex' : 'none';
+                }
+
                 if (gameState === 'dead') {
                     deathTimer -= dt;
                     if (deathTimer <= 0) {
-                        loadLevel(currentLevel);
+                        loadLevel(currentLevel, true, true);
+                        saveProgress();
                     }
                 } else if (gameState === 'playing') {
                     update(dt);
