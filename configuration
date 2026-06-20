@@ -1,0 +1,15 @@
+{
+  "visual": {
+    "playerColor": "#00CED1",
+    "platformColor": "#8B7355",
+    "backgroundColor": "#87CEEB",
+    "coinColor": "#FFD700"
+  },
+  "settings": {
+    "startingCoins": 0,
+    "coinMultiplier": 1,
+    "upgradeCostMultiplier": 1,
+    "gravityMultiplier": 1,
+    "startingLevel": 1
+  }
+}
