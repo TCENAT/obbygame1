@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sky Climb Challenge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --transition-fast: 150ms;
+            --transition-normal: 300ms;
+            --transition-slow: 500ms;
+            --ease-out: cubic-bezier(0.0, 0, 0.2, 1);
+            --ease-bounce: cubic-bezier(0.68, -0.6, 0.32, 1.6);
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            touch-action: none;
+            -ms-touch-action: none;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #game-world {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: #87CEEB;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ui-overlay > * {
+            pointer-events: auto;
+        }
+
+        .hud {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .hud-item {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+
+        .jump-btn {
+            position: absolute;
+            right: 20px;
+            bottom: 40px;
+            width: 96px;
+            height: 96px;
+            border-radius: 50%;
+            background: rgba(0, 206, 209, 0.8);
+            border: 3px solid rgba(255,255,255,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            color: white;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 700;
+            user-select: none;
+            transition: transform var(--transition-fast) var(--ease-out);
+        }
+
+        .jump-btn:active {
+            transform: scale(0.9);
+            background: rgba(0, 206, 209, 1);
+        }
+
+        .modal-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-panel {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 24px;
+            padding: 32px 24px;
+            width: 640px;
+            max-height: 1100px;
+            overflow-y: auto;
+            border: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-title {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 40px;
+            font-weight: 700;
+            color: #FFD700;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .modal-subtitle {
+            font-size: 24px;
+            color: #ccc;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .upgrade-grid {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .upgrade-card {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px 16px;
+            text-align: center;
+            border: 2px solid rgba(255,255,255,0.1);
+            transition: border-color var(--transition-fast);
+        }
+
+        .upgrade-card:hover {
+            border-color: rgba(0, 206, 209, 0.5);
+        }
+
+        .upgrade-name {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-level {
+            font-size: 22px;
+            color: #FFD700;
+            margin-bottom: 8px;
+        }
+
+        .upgrade-desc {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: transform var(--transition-fast) var(--ease-out), opacity var(--transition-fast);
+            user-select: none;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00CED1, #008B8B);
+            color: white;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #FFD700, #DAA520);
+            color: #1a1a2e;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-world">
+        <canvas id="game-canvas"></canvas>
+        <div class="ui-overlay" id="ui-overlay"></div>
+    </div>
+
+    <script>
+    async function run(mode) {
+        const gameWorld = document.getElementById('game-world');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const uiOverlay = document.getElementById('ui-overlay');
+
+        function resizeCanvas() {
+            canvas.width = 720;
+            canvas.height = 1280;
+        }
+        resizeCanvas();
+
+        // Audio context
+        let audioCtx = null;
+        const audioBuffers = {};
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            return audioCtx;
+        }
+
+        function playSound(id) {
+            try {
+                const ctx = getAudioContext();
+                if (ctx.state === 'suspended') ctx.resume();
+                if (audioBuffers[id]) {
+                    const source = ctx.createBufferSource();
+                    source.buffer = audioBuffers[id];
+                    source.connect(ctx.destination);
+                    source.start(0);
+                }
+            } catch(e) {}
+        }
+
+        // Asset loading
+        const imageCache = {};
+        const assetIds = ['player_character', 'coin_collectible', 'goal_flag', 'jump_upgrade_icon', 'speed_upgrade_icon', 'background_sky'];
+        const audioIds = ['coin_collect_sound', 'jump_sound', 'death_sound', 'level_complete_sound', 'upgrade_purchase_sound'];
+
+        async function preloadAssets() {
+            const imagePromises = assetIds.map(id => {
+                return new Promise((resolve) => {
+                    const info = lib.getAsset(id);
+                    if (info && info.type === 'image') {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        img.onload = () => { imageCache[id] = img; resolve(); };
+                        img.onerror = () => resolve();
+                        img.src = info.url;
+                    } else resolve();
+                });
+            });
+
+            const audioPromises = audioIds.map(id => {
+                return new Promise(async (resolve) => {
+                    try {
+                        const info = lib.getAsset(id);
+                        if (info && info.type === 'audio') {
+                            const actx = getAudioContext();
+                            const response = await fetch(info.url);
+                            const arrayBuffer = await response.arrayBuffer();
+                            audioBuffers[id] = await actx.decodeAudioData(arrayBuffer);
+                        }
+                    } catch(e) {}
+                    resolve();
+                });
+            });
+
+            await Promise.all([...imagePromises, ...audioPromises]);
+        }
+
+        await preloadAssets();
+
+        // Config
+        const cfg = window.gameConfig;
+
+        // Show game parameters
+        lib.showGameParameters({
+            name: 'Sky Climb Challenge',
+            params: {
+                'Player Color': { key: 'visual.playerColor', type: 'color' },
+                'Platform Color': { key: 'visual.platformColor', type: 'color' },
+                'Background Color': { key: 'visual.backgroundColor', type: 'color' },
+                'Coin Color': { key: 'visual.coinColor', type: 'color' },
+                'Starting Coins': { key: 'settings.startingCoins', type: 'slider', min: 0, max: 100, step: 5 },
+                'Coin Multiplier': { key: 'settings.coinMultiplier', type: 'slider', min: 0.5, max: 3, step: 0.25 },
+                'Upgrade Cost Multiplier': { key: 'settings.upgradeCostMultiplier', type: 'slider', min: 0.5, max: 2, step: 0.25 },
+                'Gravity Multiplier': { key: 'settings.gravityMultiplier', type: 'slider', min: 0.5, max: 1.5, step: 0.1 },
+                'Starting Level': { key: 'settings.startingLevel', type: 'slider', min: 1, max: 20, step: 1 }
+            }
+        });
+        function generateLevels() {
+            const baseLevels = [
+                // Level 1 - Tutorial
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1060,
+                    platforms: [
+                        { x: 0, y: 1180, w: 720, h: 40 }, // ground
+                        { x: 60, y: 1100, w: 100, h: 20 }, // start platform
+                        { x: 200, y: 1000, w: 150, h: 20 },
+                        { x: 400, y: 900, w: 150, h: 20 },
+                        { x: 550, y: 780, w: 140, h: 20 },
+                    ],
+                    spikes: [],
+                    coins: [
+                        { x: 180, y: 960 }, { x: 420, y: 860 }, { x: 570, y: 740 },
+                        { x: 300, y: 1140 }, { x: 500, y: 1140 },
+                        { x: 100, y: 1060 }, { x: 150, y: 1060 }, { x: 250, y: 960 },
+                        { x: 350, y: 860 }, { x: 480, y: 760 }, { x: 620, y: 760 },
+                        { x: 50, y: 1140 }, { x: 150, y: 1140 }, { x: 250, y: 1140 },
+                        { x: 350, y: 1140 }, { x: 450, y: 1140 }, { x: 550, y: 1140 },
+                        { x: 650, y: 1140 }
+                    ],
+                    flagX: 600, flagY: 700,
+                    coinReward: 5
+                },
+                // Level 2 - Basic Jumping
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 200, h: 40 },
+                        { x: 280, y: 1180, w: 150, h: 40 },
+                        { x: 500, y: 1180, w: 220, h: 40 },
+                        { x: 100, y: 1020, w: 150, h: 20 },
+                        { x: 320, y: 920, w: 150, h: 20 },
+                        { x: 520, y: 820, w: 160, h: 20 },
+                        { x: 350, y: 740, w: 140, h: 20 }, // Reachable
+                    ],
+                    spikes: [
+                        { x: 220, y: 1160, w: 50 },
+                        { x: 460, y: 1160, w: 30 },
+                    ],
+                    coins: [
+                        { x: 160, y: 980 }, { x: 380, y: 880 }, { x: 580, y: 780 },
+                        { x: 420, y: 700 }, { x: 100, y: 1140 }, { x: 600, y: 1140 },
+                        { x: 350, y: 1140 }
+                    ],
+                    flagX: 380, flagY: 660,
+                    coinReward: 10
+                },
+                // Level 3 - Vertical Challenge
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 300, h: 40 },
+                        { x: 450, y: 1080, w: 150, h: 20 },
+                        { x: 200, y: 960, w: 120, h: 20 },
+                        { x: 450, y: 840, w: 130, h: 20 },
+                        { x: 100, y: 720, w: 120, h: 20 },
+                        { x: 350, y: 600, w: 130, h: 20 },
+                        { x: 550, y: 480, w: 140, h: 20 },
+                        { x: 250, y: 380, w: 120, h: 20 },
+                    ],
+                    spikes: [
+                        { x: 50, y: 1160, w: 40 },
+                        { x: 220, y: 940, w: 30 },
+                        { x: 370, y: 580, w: 30 },
+                    ],
+                    coins: [
+                        { x: 500, y: 1040 }, { x: 250, y: 920 }, { x: 490, y: 800 },
+                        { x: 140, y: 680 }, { x: 400, y: 560 }, { x: 600, y: 440 },
+                        { x: 290, y: 340 }, { x: 150, y: 1140 }
+                    ],
+                    flagX: 280, flagY: 300,
+                    coinReward: 8
+                },
+                // Level 4 - Precision Required
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 150, h: 40 },
+                        { x: 220, y: 1100, w: 80, h: 20 },
+                        { x: 380, y: 1020, w: 70, h: 20 },
+                        { x: 540, y: 940, w: 80, h: 20 },
+                        { x: 370, y: 850, w: 70, h: 20 },
+                        { x: 180, y: 760, w: 80, h: 20 },
+                        { x: 400, y: 670, w: 70, h: 20 },
+                        { x: 560, y: 580, w: 80, h: 20 },
+                        { x: 320, y: 490, w: 70, h: 20 },
+                        { x: 120, y: 400, w: 100, h: 20 },
+                    ],
+                    spikes: [
+                        { x: 240, y: 1080, w: 30 },
+                        { x: 395, y: 1000, w: 30 },
+                        { x: 385, y: 830, w: 25 },
+                        { x: 415, y: 650, w: 25 },
+                    ],
+                    coins: [
+                        { x: 250, y: 1060 }, { x: 405, y: 980 }, { x: 570, y: 900 },
+                        { x: 395, y: 810 }, { x: 210, y: 720 }, { x: 425, y: 630 },
+                        { x: 590, y: 540 }, { x: 345, y: 450 }, { x: 150, y: 360 },
+                        { x: 60, y: 1140 }
+                    ],
+                    flagX: 140, flagY: 320,
+                    coinReward: 10
+                },
+                // Level 5 - First Real Challenge
+                {
+                    width: 1080, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 120, h: 40 },
+                        { x: 200, y: 1120, w: 60, h: 20 },
+                        { x: 340, y: 1050, w: 80, h: 20 },
+                        { x: 500, y: 1050, w: 60, h: 20 },
+                        { x: 640, y: 970, w: 70, h: 20 },
+                        { x: 800, y: 900, w: 80, h: 20 },
+                        { x: 640, y: 800, w: 60, h: 20 },
+                        { x: 470, y: 730, w: 70, h: 20 },
+                        { x: 300, y: 660, w: 80, h: 20 },
+                        { x: 150, y: 580, w: 70, h: 20 },
+                        { x: 320, y: 500, w: 60, h: 20 },
+                        { x: 500, y: 420, w: 80, h: 20 },
+                        { x: 700, y: 360, w: 100, h: 20 },
+                        { x: 880, y: 300, w: 120, h: 20 },
+                    ],
+                    spikes: [
+                        { x: 210, y: 1100, w: 40 },
+                        { x: 350, y: 1030, w: 30 },
+                        { x: 650, y: 950, w: 30 },
+                        { x: 480, y: 710, w: 25 },
+                        { x: 160, y: 560, w: 25 },
+                        { x: 510, y: 400, w: 30 },
+                    ],
+                    coins: [
+                        { x: 220, y: 1080 }, { x: 370, y: 1010 }, { x: 520, y: 1010 },
+                        { x: 665, y: 930 }, { x: 830, y: 860 }, { x: 660, y: 760 },
+                        { x: 490, y: 690 }, { x: 330, y: 620 }, { x: 175, y: 540 },
+                        { x: 340, y: 460 }, { x: 530, y: 380 }, { x: 920, y: 260 }
+                    ],
+                    flagX: 910, flagY: 220,
+                    coinReward: 12
+                },
+                // Level 6 - High Altitude
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 100, h: 40 },
+                        { x: 200, y: 1080, w: 100, h: 20 },
+                        { x: 400, y: 980, w: 100, h: 20 },
+                        { x: 200, y: 880, w: 100, h: 20 },
+                        { x: 400, y: 780, w: 100, h: 20 },
+                        { x: 200, y: 680, w: 100, h: 20 },
+                        { x: 400, y: 580, w: 100, h: 20 },
+                        { x: 200, y: 480, w: 100, h: 20 },
+                        { x: 400, y: 380, w: 100, h: 20 },
+                        { x: 200, y: 280, w: 100, h: 20 },
+                    ],
+                    spikes: [
+                        { x: 220, y: 1060, w: 60 },
+                        { x: 420, y: 960, w: 60 },
+                        { x: 220, y: 860, w: 60 },
+                        { x: 420, y: 760, w: 60 },
+                    ],
+                    coins: [
+                        { x: 250, y: 1040 }, { x: 450, y: 940 }, { x: 250, y: 840 }, { x: 450, y: 740 },
+                        { x: 250, y: 640 }, { x: 450, y: 540 }, { x: 250, y: 440 }, { x: 450, y: 340 }
+                    ],
+                    flagX: 220, flagY: 200,
+                    coinReward: 15
+                },
+                // Level 7 - The Zig Zag
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 150, h: 40 },
+                        { x: 500, y: 1050, w: 150, h: 20 },
+                        { x: 50, y: 920, w: 150, h: 20 },
+                        { x: 500, y: 790, w: 150, h: 20 },
+                        { x: 50, y: 660, w: 150, h: 20 },
+                        { x: 500, y: 530, w: 150, h: 20 },
+                        { x: 50, y: 400, w: 150, h: 20 },
+                    ],
+                    spikes: [],
+                    coins: [
+                        { x: 575, y: 1010 }, { x: 125, y: 880 }, { x: 575, y: 750 },
+                        { x: 125, y: 620 }, { x: 575, y: 490 }, { x: 125, y: 360 }
+                    ],
+                    flagX: 100, flagY: 320,
+                    coinReward: 15
+                },
+                // Level 8 - Leap of Faith
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 100, h: 40 },
+                        { x: 300, y: 1180, w: 50, h: 20 },
+                        { x: 600, y: 1180, w: 120, h: 40 },
+                        { x: 450, y: 1000, w: 100, h: 20 },
+                        { x: 150, y: 900, w: 100, h: 20 },
+                        { x: 450, y: 800, w: 100, h: 20 },
+                        { x: 150, y: 700, w: 100, h: 20 },
+                        { x: 450, y: 600, w: 100, h: 20 },
+                        { x: 150, y: 500, w: 100, h: 20 },
+                    ],
+                    spikes: [
+                        { x: 100, y: 1160, w: 200 },
+                        { x: 350, y: 1160, w: 250 },
+                    ],
+                    coins: [
+                        { x: 325, y: 1140 }, { x: 500, y: 960 }, { x: 200, y: 860 },
+                        { x: 500, y: 760 }, { x: 200, y: 660 }, { x: 500, y: 560 }
+                    ],
+                    flagX: 170, flagY: 420,
+                    coinReward: 20
+                },
+                // Level 9 - Precision Squeeze
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 120, h: 40 },
+                        { x: 200, y: 1100, w: 40, h: 20 },
+                        { x: 320, y: 1020, w: 40, h: 20 },
+                        { x: 440, y: 940, w: 40, h: 20 },
+                        { x: 560, y: 860, w: 40, h: 20 },
+                        { x: 440, y: 780, w: 40, h: 20 },
+                        { x: 320, y: 700, w: 40, h: 20 },
+                        { x: 200, y: 620, w: 40, h: 20 },
+                        { x: 80, y: 540, w: 40, h: 20 },
+                        { x: 200, y: 460, w: 40, h: 20 },
+                    ],
+                    spikes: [],
+                    coins: [
+                        { x: 220, y: 1060 }, { x: 340, y: 980 }, { x: 460, y: 900 },
+                        { x: 580, y: 820 }, { x: 460, y: 740 }, { x: 340, y: 660 }
+                    ],
+                    flagX: 200, flagY: 380,
+                    coinReward: 20
+                },
+                // Level 10 - Moving Up
+                {
+                    width: 720, height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 200, h: 40 },
+                        { x: 400, y: 1080, w: 200, h: 20 },
+                        { x: 100, y: 980, w: 200, h: 20 },
+                        { x: 400, y: 880, w: 200, h: 20 },
+                        { x: 100, y: 780, w: 200, h: 20 },
+                        { x: 400, y: 680, w: 200, h: 20 },
+                        { x: 100, y: 580, w: 200, h: 20 },
+                        { x: 400, y: 480, w: 200, h: 20 },
+                        { x: 100, y: 380, w: 200, h: 20 },
+                    ],
+                    spikes: [
+                        { x: 250, y: 960, w: 100 },
+                        { x: 250, y: 760, w: 100 },
+                        { x: 250, y: 560, w: 100 },
+                    ],
+                    coins: [
+                        { x: 500, y: 1040 }, { x: 200, y: 940 }, { x: 500, y: 840 },
+                        { x: 200, y: 740 }, { x: 500, y: 640 }, { x: 200, y: 540 }
+                    ],
+                    flagX: 150, flagY: 300,
+                    coinReward: 25
+                },
+            ];
+
+            const extraLevels = Array.from({ length: 10 }, (_, i) => {
+                const idx = i + 11;
+                return {
+                    width: 720 + (idx * 30), height: 1280,
+                    spawnX: 60, spawnY: 1100,
+                    platforms: [
+                        { x: 0, y: 1180, w: 120, h: 40 },
+                        ...Array.from({ length: 12 }, (_, j) => ({
+                            x: (j % 2 === 0 ? 100 + j * 30 : 500 - j * 20),
+                            y: 1080 - j * 80,
+                            w: 90 - j * 3,
+                            h: 20
+                        })),
+                        { x: 400, y: 100, w: 120, h: 20 }
+                    ],
+                    spikes: Array.from({ length: idx }, (_, j) => ({
+                        x: 150 + j * 50, y: 1160, w: 30
+                    })),
+                    coins: Array.from({ length: 15 }, (_, j) => ({
+                        x: 200 + (j * 50) % 500, y: 1000 - j * 60
+                    })),
+                    flagX: 420, flagY: 40,
+                    coinReward: 30 + idx
+                };
+            });
+
+            return [...baseLevels, ...extraLevels];
+        }
+        // Game state
+        let gameState = 'playing'; // playing, dead, levelComplete, shop, victory
+        let currentLevel = (cfg.settings.startingLevel || 1) - 1;
+        let coins = cfg.settings.startingCoins || 0;
+        let jumpLevel = 0;
+        let speedLevel = 0;
+        let completedLevels = new Set();
+        let collectedCoins = {}; // per level coin tracking
+
+        // Player state
+        let player = { x: 0, y: 0, vx: 0, vy: 0, w: 40, h: 40, grounded: false, coyoteTime: 0, jumpBuffer: 0 };
+        let levels = generateLevels();
+        let cameraX = 0;
+        let deathTimer = 0;
+        let coinAnimations = [];
+        let levelCoinsCollected = 0;
+
+        // Input state
+        let input = { left: false, right: false, jump: false, jumpPressed: false };
+        let joystickActive = false;
+        let joystickStartX = 0;
+        let joystickX = 0;
+        let joystickTouchId = null;
+        let jumpTouchId = null;
+
+        // Physics constants
+        const BASE_SPEED = 200;
+        const BASE_JUMP = -600;
+        const BASE_GRAVITY = 1800;
+
+        function getSpeed() { return BASE_SPEED * (1 + speedLevel * 0.25); }
+        function getJump() { return BASE_JUMP * (1 + jumpLevel * 0.2); }
+        function getGravity() { return BASE_GRAVITY * (cfg.settings.gravityMultiplier || 1); }
+
+        function getUpgradeCost(level) {
+            const costs = [15, 30, 50];
+            if (level >= 3) return Infinity;
+            return Math.round(costs[level] * (cfg.settings.upgradeCostMultiplier || 1));
+        }
+
+        function loadLevel(idx) {
+            const lvl = levels[idx];
+            player.x = lvl.spawnX;
+            player.y = lvl.spawnY;
+            player.vx = 0;
+            player.vy = 0;
+            player.grounded = false;
+            player.coyoteTime = 0;
+            player.jumpBuffer = 0;
+            cameraX = 0;
+            gameState = 'playing';
+            levelCoinsCollected = 0;
+            if (!collectedCoins[idx]) collectedCoins[idx] = new Set();
+        }
+
+        // Load saved state
+        async function loadProgress() {
+            try {
+                const saved = await lib.getUserGameState();
+                if (saved && saved.state) {
+                    const s = saved.state;
+                    coins = s.coins ?? cfg.settings.startingCoins ?? 0;
+                    jumpLevel = s.jumpLevel ?? 0;
+                    speedLevel = s.speedLevel ?? 0;
+                    currentLevel = s.currentLevel ?? (cfg.settings.startingLevel - 1) ?? 0;
+                    completedLevels = new Set(s.completedLevels ?? []);
+                    collectedCoins = {};
+                    if (s.collectedCoins) {
+                        for (const k in s.collectedCoins) {
+                            collectedCoins[k] = new Set(s.collectedCoins[k]);
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async function saveProgress() {
+            try {
+                const cc = {};
+                for (const k in collectedCoins) {
+                    cc[k] = [...collectedCoins[k]];
+                }
+                await lib.saveUserGameState({
+                    coins, jumpLevel, speedLevel, currentLevel,
+                    completedLevels: [...completedLevels],
+                    collectedCoins: cc
+                });
+            } catch(e) {}
+        }
+
+        if (mode === 'play') {
+            await loadProgress();
+            loadLevel(currentLevel);
+        }
+
+        // Input handling
+        function setupControls() {
+            // Keyboard
+            window.addEventListener('keydown', (e) => {
+                if (mode !== 'play' || gameState !== 'playing') return;
+                e.preventDefault();
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = true;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = true;
+                if ((e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') && !input.jump) {
+                    input.jump = true;
+                    input.jumpPressed = true;
+                }
+            });
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') input.left = false;
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') input.right = false;
+                if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') input.jump = false;
+            });
+            window.addEventListener('blur', () => {
+                input.left = false; input.right = false; input.jump = false;
+            });
+
+            // Touch
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+        }
+
+        function getTouchPos(touch) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (touch.clientX - rect.left) * (720 / rect.width),
+                y: (touch.clientY - rect.top) * (1280 / rect.height)
+            };
+        }
+
+        function handleTouchStart(e) {
+            if (mode !== 'play' || gameState !== 'playing') return;
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                const pos = getTouchPos(t);
+                if (pos.x > 500 && pos.y > 1080) {
+                    // Jump button area
+                    jumpTouchId = t.identifier;
+                    input.jump = true;
+                    input.jumpPressed = true;
+                } else if (pos.x < 400 && pos.y > 640) {
+                    // Left zone - joystick
+                    joystickTouchId = t.identifier;
+                    joystickStartX = pos.x;
+                    joystickX = pos.x;
+                    joystickActive = true;
+                }
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                if (t.identifier === joystickTouchId) {
+                    const pos = getTouchPos(t);
+                    joystickX = pos.x;
+                    const dx = joystickX - joystickStartX;
+                    if (Math.abs(dx) > 10) {
+                        input.left = dx < -10;
+                        input.right = dx > 10;
+                    } else {
+                        input.left = false;
+                        input.right = false;
+                    }
+                }
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const t = e.changedTouches[i];
+                if (t.identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    joystickActive = false;
+                    input.left = false;
+                    input.right = false;
+                }
+                if (t.identifier === jumpTouchId) {
+                    jumpTouchId = null;
+                    input.jump = false;
+                }
+            }
+        }
+
+        if (mode === 'play') setupControls();
+
+        // Physics & Game Logic
+        function update(dt) {
+            if (gameState !== 'playing') return;
+
+            const lvl = levels[currentLevel];
+            const speed = getSpeed();
+            const gravity = getGravity();
+            const jumpVel = getJump();
+
+            // Movement
+            player.vx = 0;
+            if (input.left) player.vx = -speed;
+            if (input.right) player.vx = speed;
+
+            // Jump buffering
+            if (input.jumpPressed) {
+                player.jumpBuffer = 0.1;
+                input.jumpPressed = false;
+            }
+            if (player.jumpBuffer > 0) player.jumpBuffer -= dt;
+
+            // Coyote time
+            if (player.grounded) {
+                player.coyoteTime = 0.1;
+            } else {
+                player.coyoteTime -= dt;
+            }
+
+            // Jump
+            if (player.jumpBuffer > 0 && player.coyoteTime > 0) {
+                player.vy = jumpVel;
+                player.grounded = false;
+                player.coyoteTime = 0;
+                player.jumpBuffer = 0;
+                playSound('jump_sound');
+            }
+
+            // Gravity
+            player.vy += gravity * dt;
+
+            // Move X
+            player.x += player.vx * dt;
+
+            // Clamp to level bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.w > lvl.width) player.x = lvl.width - player.w;
+
+            // Collision X
+            player.grounded = false;
+
+            // Move Y
+            player.y += player.vy * dt;
+
+            // Platform collision
+            for (const p of lvl.platforms) {
+                if (player.x + player.w > p.x && player.x < p.x + p.w) {
+                    // Landing on top
+                    if (player.vy >= 0 && player.y + player.h > p.y && player.y + player.h < p.y + p.h + player.vy * dt + 5) {
+                        player.y = p.y - player.h;
+                        player.vy = 0;
+                        player.grounded = true;
+                    }
+                }
+            }
+
+            // Death pit
+            if (player.y > lvl.height + 50) {
+                die();
+                return;
+            }
+
+            // Spike collision
+            for (const s of lvl.spikes) {
+                const spikeH = 20;
+                const margin = 4;
+                if (player.x + player.w - margin > s.x && player.x + margin < s.x + s.w &&
+                    player.y + player.h - margin > s.y && player.y + margin < s.y + spikeH) {
+                    die();
+                    return;
+                }
+            }
+
+            // Coin collection
+            const coinSet = collectedCoins[currentLevel];
+            lvl.coins.forEach((c, i) => {
+                if (coinSet.has(i)) return;
+                const dx = (player.x + player.w/2) - c.x;
+                const dy = (player.y + player.h/2) - c.y;
+                if (Math.sqrt(dx*dx + dy*dy) < 30) {
+                    coinSet.add(i);
+                    const reward = Math.round(1 * (cfg.settings.coinMultiplier || 1));
+                    coins += reward;
+                    levelCoinsCollected++;
+                    coinAnimations.push({ x: c.x, y: c.y, t: 0 });
+                    playSound('coin_collect_sound');
+                }
+            });
+
+            // Goal flag
+            const flagW = 60, flagH = 80;
+            if (player.x + player.w > lvl.flagX && player.x < lvl.flagX + flagW &&
+                player.y + player.h > lvl.flagY && player.y < lvl.flagY + flagH) {
+                completeLevel();
+            }
+
+            // Camera
+            const targetCamX = player.x - 360 + player.w/2;
+            cameraX = Math.max(0, Math.min(targetCamX, lvl.width - 720));
+
+            // Update coin animations
+            coinAnimations = coinAnimations.filter(a => {
+                a.t += dt;
+                return a.t < 0.5;
+            });
+        }
+
+        function die() {
+            gameState = 'dead';
+            deathTimer = 0.5;
+            playSound('death_sound');
+        }
+
+        function completeLevel() {
+            gameState = 'levelComplete';
+            completedLevels.add(currentLevel);
+            playSound('level_complete_sound');
+            saveProgress();
+            showLevelComplete();
+        }
+
+        // UI
+        function showLevelComplete() {
+            const lvl = levels[currentLevel];
+            const totalCoins = lvl.coins.length;
+            const collected = collectedCoins[currentLevel].size;
+            const stars = collected >= totalCoins ? 3 : collected >= totalCoins * 0.6 ? 2 : 1;
+
+            uiOverlay.innerHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-panel">
+                        <div class="modal-title">Level Complete!</div>
+                        <div class="level-complete-stars">${'⭐'.repeat(stars)}${'☆'.repeat(3-stars)}</div>
+                        <div class="modal-subtitle">Coins: ${collected}/${totalCoins} | Total: 🪙 ${coins}</div>
+                        <div style="text-align:center;margin-top:24px;">
+                            <button class="btn btn-green" id="btn-continue">Continue</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('btn-continue').addEventListener('click', () => {
+                if (currentLevel >= levels.length - 1) {
+                    showVictory();
+                } else {
+                    showShop();
+                }
+            });
+        }
+
+        function showShop() {
+            gameState = 'shop';
+            const jumpCost = getUpgradeCost(jumpLevel);
+            const speedCost = getUpgradeCost(speedLevel);
+
+            uiOverlay.innerHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-panel">
+                        <div class="modal-title">Upgrade Shop</div>
+                        <div class="modal-subtitle">🪙 ${coins} coins</div>
+                        <div class="upgrade-grid">
+                            <div class="upgrade-card">
+                                <div class="upgrade-name">⬆️ Jump Height</div>
+                                <div class="upgrade-level">${'★'.repeat(jumpLevel)}${'☆'.repeat(3-jumpLevel)}</div>
+                                <div class="upgrade-desc">+${(jumpLevel)*20}% → +${(jumpLevel+1)*20}%</div>
+                                ${jumpLevel < 3 ? `<button class="btn btn-gold" id="btn-jump" ${coins < jumpCost ? 'disabled' : ''}>Buy (${jumpCost} 🪙)</button>` : '<div style="color:#32CD32;font-size:22px;">MAX</div>'}
+                            </div>
+                            <div class="upgrade-card">
+                                <div class="upgrade-name">💨 Speed</div>
+                                <div class="upgrade-level">${'★'.repeat(speedLevel)}${'☆'.repeat(3-speedLevel)}</div>
+                                <div class="upgrade-desc">+${(speedLevel)*25}% → +${(speedLevel+1)*25}%</div>
+                                ${speedLevel < 3 ? `<button class="btn btn-gold" id="btn-speed" ${coins < speedCost ? 'disabled' : ''}>Buy (${speedCost} 🪙)</button>` : '<div style="color:#32CD32;font-size:22px;">MAX</div>'}
+                            </div>
+                        </div>
+                        <div style="text-align:center;">
+                            <button class="btn btn-green" id="btn-next">Next Level →</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const btnJump = document.getElementById('btn-jump');
+            const btnSpeed = document.getElementById('btn-speed');
+            const btnNext = document.getElementById('btn-next');
+
+            if (btnJump) btnJump.addEventListener('click', () => {
+                const cost = getUpgradeCost(jumpLevel);
+                if (coins >= cost) {
+                    coins -= cost;
+                    jumpLevel++;
+                    playSound('upgrade_purchase_sound');
+                    saveProgress();
+                    showShop();
+                }
+            });
+            if (btnSpeed) btnSpeed.addEventListener('click', () => {
+                const cost = getUpgradeCost(speedLevel);
+                if (coins >= cost) {
+                    coins -= cost;
+                    speedLevel++;
+                    playSound('upgrade_purchase_sound');
+                    saveProgress();
+                    showShop();
+                }
+            });
+            btnNext.addEventListener('click', () => {
+                currentLevel++;
+                uiOverlay.innerHTML = '';
+                loadLevel(currentLevel);
+                saveProgress();
+            });
+        }
+
+        function showVictory() {
+            gameState = 'victory';
+            uiOverlay.innerHTML = `
+                <div class="modal-overlay">
+                    <div class="modal-panel">
+                        <div class="modal-title">🎉 Victory!</div>
+                        <div class="modal-subtitle">You conquered all ${levels.length} levels!</div>
+                        <div style="text-align:center;color:#ccc;font-size:22px;margin:16px 0;">
+                            Total Coins: 🪙 ${coins}<br>
+                            Jump Level: ${jumpLevel}/3<br>
+                            Speed Level: ${speedLevel}/3
+                        </div>
+                        <div style="text-align:center;margin-top:24px;">
+                            <button class="btn btn-primary" id="btn-replay">Play Again</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('btn-replay').addEventListener('click', () => {
+                currentLevel = 0;
+                uiOverlay.innerHTML = '';
+                loadLevel(0);
+            });
+        }
+
+        // Rendering
+        function render() {
+            ctx.clearRect(0, 0, 720, 1280);
+
+            // Background
+            if (imageCache['background_sky']) {
+                const img = imageCache['background_sky'];
+                const scale = Math.max(720 / img.width, 1280 / img.height);
+                const w = img.width * scale;
+                const h = img.height * scale;
+                ctx.drawImage(img, (720-w)/2, (1280-h)/2, w, h);
+            } else {
+                const grad = ctx.createLinearGradient(0, 0, 0, 1280);
+                grad.addColorStop(0, cfg.visual.backgroundColor || '#87CEEB');
+                grad.addColorStop(1, '#F0F8FF');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, 720, 1280);
+            }
+
+            if (mode === 'edit') {
+                renderEditMode();
+                return;
+            }
+
+            const lvl = levels[currentLevel];
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            // Platforms
+            ctx.fillStyle = cfg.visual.platformColor || '#8B7355';
+            for (const p of lvl.platforms) {
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(p.x, p.y + p.h - 3, p.w, 3);
+                ctx.fillStyle = cfg.visual.platformColor || '#8B7355';
+            }
+
+            // Spikes
+            ctx.fillStyle = '#8B0000';
+            for (const s of lvl.spikes) {
+                const spikeCount = Math.floor(s.w / 15);
+                for (let i = 0; i < spikeCount; i++) {
+                    ctx.beginPath();
+                    const sx = s.x + i * (s.w / spikeCount);
+                    const sw = s.w / spikeCount;
+                    ctx.moveTo(sx, s.y + 20);
+                    ctx.lineTo(sx + sw/2, s.y);
+                    ctx.lineTo(sx + sw, s.y + 20);
+                    ctx.fill();
+                }
+            }
+
+            // Coins
+            const coinSet = collectedCoins[currentLevel] || new Set();
+            lvl.coins.forEach((c, i) => {
+                if (coinSet.has(i)) return;
+                if (imageCache['coin_collectible']) {
+                    const img = imageCache['coin_collectible'];
+                    const size = 30;
+                    const ar = img.width / img.height;
+                    const w = ar >= 1 ? size : size * ar;
+                    const h = ar >= 1 ? size / ar : size;
+                    ctx.drawImage(img, c.x - w/2, c.y - h/2, w, h);
+                } else {
+                    ctx.fillStyle = cfg.visual.coinColor || '#FFD700';
+                    ctx.beginPath();
+                    ctx.arc(c.x, c.y, 12, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Coin animations
+            for (const a of coinAnimations) {
+                ctx.globalAlpha = 1 - a.t * 2;
+                ctx.fillStyle = '#FFD700';
+                ctx.font = '24px Fredoka';
+                ctx.fillText('+1', a.x, a.y - a.t * 60);
+                ctx.globalAlpha = 1;
+            }
+
+            // Goal flag
+            if (imageCache['goal_flag']) {
+                const img = imageCache['goal_flag'];
+                const ar = img.width / img.height;
+                const h = 80;
+                const w = h * ar;
+                ctx.drawImage(img, lvl.flagX, lvl.flagY, w, h);
+            } else {
+                ctx.fillStyle = '#32CD32';
+                ctx.fillRect(lvl.flagX + 5, lvl.flagY, 6, 80);
+                ctx.fillRect(lvl.flagX + 11, lvl.flagY, 40, 25);
+            }
+
+            // Player
+            if (gameState !== 'dead') {
+                if (imageCache['player_character']) {
+                    const img = imageCache['player_character'];
+                    const ar = img.width / img.height;
+                    const h = player.h;
+                    const w = h * ar;
+                    const drawX = player.x + player.w/2 - w/2;
+                    // Flip if moving left
+                    if (player.vx < 0) {
+                        ctx.save();
+                        ctx.translate(player.x + player.w/2, player.y + player.h/2);
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(img, -w/2, -h/2, w, h);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(img, drawX, player.y, w, h);
+                    }
+                } else {
+                    ctx.fillStyle = cfg.visual.playerColor || '#00CED1';
+                    ctx.beginPath();
+                    const r = 6;
+                    ctx.roundRect(player.x, player.y, player.w, player.h, r);
+                    ctx.fill();
+                    // Eyes
+                    ctx.fillStyle = '#000';
+                    ctx.beginPath();
+                    ctx.arc(player.x + 13, player.y + 15, 3, 0, Math.PI * 2);
+                    ctx.arc(player.x + 27, player.y + 15, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+
+            // HUD
+            if (gameState === 'playing') {
+                renderHUD();
+            }
+
+            // Death overlay
+            if (gameState === 'dead') {
+                ctx.fillStyle = `rgba(139, 0, 0, ${0.3 * (1 - deathTimer/0.5)})`;
+                ctx.fillRect(0, 0, 720, 1280);
+            }
+        }
+
+        function renderHUD() {
+            // Coin count
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.beginPath();
+            ctx.roundRect(16, 16, 140, 48, 12);
+            ctx.fill();
+            ctx.fillStyle = '#FFD700';
+            ctx.font = '600 24px Fredoka';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`🪙 ${coins}`, 32, 40);
+
+            // Level
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.beginPath();
+            ctx.roundRect(290, 16, 140, 48, 12);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.fillText(`Level ${currentLevel + 1}/${levels.length}`, 360, 40);
+            ctx.textAlign = 'left';
+
+            // Jump button indicator
+            ctx.fillStyle = 'rgba(0, 206, 209, 0.6)';
+            ctx.beginPath();
+            ctx.arc(672, 1192, 48, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = '700 28px Fredoka';
+            ctx.textAlign = 'center';
+            ctx.fillText('↑', 672, 1198);
+            ctx.textAlign = 'left';
+
+            // Joystick indicator
+            if (joystickActive) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(joystickStartX, 1100, 50, 0, Math.PI * 2);
+                ctx.stroke();
+                const knobX = Math.max(joystickStartX - 50, Math.min(joystickX, joystickStartX + 50));
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.arc(knobX, 1100, 20, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function renderEditMode() {
+            // Show sample level preview
+            const lvl = levels[0];
+            ctx.save();
+
+            // Platforms
+            ctx.fillStyle = cfg.visual.platformColor || '#8B7355';
+            for (const p of lvl.platforms) {
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+            }
+
+            // Sample player
+            ctx.fillStyle = cfg.visual.playerColor || '#00CED1';
+            ctx.beginPath();
+            ctx.roundRect(lvl.spawnX, lvl.spawnY, 40, 40, 6);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(lvl.spawnX + 13, lvl.spawnY + 15, 3, 0, Math.PI * 2);
+            ctx.arc(lvl.spawnX + 27, lvl.spawnY + 15, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Coins
+            ctx.fillStyle = cfg.visual.coinColor || '#FFD700';
+            for (const c of lvl.coins) {
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+
+            // Edit mode label
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.beginPath();
+            ctx.roundRect(220, 600, 280, 56, 16);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = '600 28px Fredoka';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✏️ Edit Mode Preview', 360, 628);
+            ctx.textAlign = 'left';
+        }
+
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            const dt = Math.min((timestamp - lastTime) / 1000, 0.11);
+            lastTime = timestamp;
+
+            if (mode === 'play') {
+                if (gameState === 'dead') {
+                    deathTimer -= dt;
+                    if (deathTimer <= 0) {
+                        loadLevel(currentLevel);
+                    }
+                } else if (gameState === 'playing') {
+                    update(dt);
+                }
+            }
+
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+    </script>
+</body>
+</html>
